@@ -70,6 +70,7 @@ jobs:
     name: Trivy Security Scan
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write # Required to upload results to the Security tab
 
     steps:
