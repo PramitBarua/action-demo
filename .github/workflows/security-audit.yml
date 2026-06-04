@@ -33,6 +33,7 @@ jobs:
   codeql-analysis:
     name: CodeQL Static Analysis (SAST)
     runs-on: ubuntu-latest
+    if: github.event.repository.private == false # Only runs on public repositories (CodeQL is free for public repos)
     permissions:
       actions: read
       contents: read
@@ -47,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # 'security-extended' adds extra security queries beyond the default suite
@@ -64,3 +65,43 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{matrix.language}}"
+
+  trivy-audit:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # Required to upload results to the Security tab
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      # Step 1: Scan Repository Dependencies (SCA) & Code
+      - name: Run Trivy vulnerability scanner (Repo OSS)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: "fs" # 'fs' stands for filesystem (scans code & dependencies)
+          scan-ref: "."
+          format: "sarif" # Exporting to SARIF allows GitHub to display it natively
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH" # Focus on high-impact flaws to prevent alert fatigue
+
+      # Step 2: Upload findings to the GitHub Security Tab
+      # This integrates the open-source results directly into the GitHub UI
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() # Ensure results are uploaded even if vulnerabilities are found
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      # Step 3: Optional Workshop "Gatekeeper"
+      # This step explicitly breaks the build on PRs if Critical flaws exist
+      - name: Enforce Security Gate
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table" # Output a clean table directly into the GitHub Actions log
+          exit-code: "1" # A non-zero exit code will intentionally fail the workflow
+          severity: "CRITICAL"
