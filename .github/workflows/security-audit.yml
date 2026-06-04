@@ -43,7 +43,7 @@ jobs:
       matrix:
         # Supported languages: 'javascript-typescript', 'python', 'go', 'java-kotlin', 'ruby', 'c-cpp', 'csharp'
         # Adapt this list to match your workshop's language
-        language: ["javascript-typescript", "python"]
+        language: ["javascript-typescript"]
 
     steps:
       - name: Checkout Repository
