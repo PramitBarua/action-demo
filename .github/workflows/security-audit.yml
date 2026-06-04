@@ -106,4 +106,4 @@ jobs:
           scan-ref: "."
           format: "table" # Output a clean table directly into the GitHub Actions log
           exit-code: "1" # A non-zero exit code will intentionally fail the workflow
-          severity: "CRITICAL"
+          severity: "CRITICAL,HIGH"
